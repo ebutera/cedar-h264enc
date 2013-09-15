@@ -30,6 +30,14 @@ typedef struct buffer
 	size_t length;
 }buffer;
 
+extern int cdxalloc_open(void);
+extern int cdxalloc_close(void);
+extern void* cdxalloc_alloc(int size);
+extern void* cdxalloc_allocregs();
+extern void cdxalloc_free(void *address);
+extern unsigned int cdxalloc_vir2phy(void *address);
+extern void cdxalloc_createmapping(void *virt,void *phys,int size);
+
 int disphd;
 unsigned int hlay;
 int sel = 0;//which screen 0/1
@@ -40,6 +48,7 @@ __u32 arg[4];
 static int 			fd 		= NULL;
 struct buffer 		*buffers	= NULL;
 static unsigned int	n_buffers	= 0;
+static void		**cedarbufs	= NULL;
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
 
@@ -305,6 +314,22 @@ int InitCapture()
 	disp_start();
 #endif // DISP_PREVIEW
 
+	if (cdxalloc_open()) {
+		printf("cdxalloc open error!\n");
+		return -1;
+	}
+
+	cedarbufs = calloc(n_buffers, sizeof(void *));
+
+	for (i=0; i<n_buffers; i++) {
+		cedarbufs[i] = cdxalloc_alloc(buffers[0].length);
+		if (!cedarbufs[i]) {
+			printf("cdxalloc_alloc error!\n");
+			return -1;
+		}
+		printf("DBG: cdx buffer: %p\n", cedarbufs[i]);
+	}
+
 	return 0;
 }
 
@@ -339,6 +364,12 @@ void DeInitCapture()
 	}
 
 	printf("V4L2 close****************************\n");
+
+	for (i=0; i<n_buffers; i++) {
+		cdxalloc_free(cedarbufs[i]);
+	}
+	if (cdxalloc_close()) printf("DBG: cdxalloc_close error!\n");
+	else printf("DBG: cdxalloc closed\n");
 }
 
 int StartStreaming()
@@ -445,9 +476,10 @@ int GetPreviewFrame(V4L2BUF_t *pBuf)	// DQ buffer for preview or encoder
     }
 
 	//memset(buffers[buf.index].start, 0x55, buf.bytesused);
-	printf("\tSTART: %p, OFF: %p\n", buffers[buf.index].start, buf.m.offset);
+	//printf("\tSTART: %p, OFF: %p\n", buffers[buf.index].start, buf.m.offset);
+	memcpy(cedarbufs[buf.index], buffers[buf.index].start, buf.bytesused);
 	
-	pBuf->addrPhyY	= buf.m.offset;
+	pBuf->addrPhyY	= cdxalloc_vir2phy(cedarbufs[buf.index]);// buf.m.offset;
 	pBuf->index 	= buf.index;
 	pBuf->timeStamp = (int64_t)((int64_t)buf.timestamp.tv_usec + (((int64_t)buf.timestamp.tv_sec) * 1000000));
 
