@@ -467,7 +467,7 @@ static int convert(struct v4l2_buffer *srcbuf) {
 		return -1;
 	}
 	fmt_dst = fmt_src;
-	fmt_dst.fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;	//V4L2_PIX_FMT_YUV420;//V4L2_PIX_FMT_NV12;
+	fmt_dst.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;	//V4L2_PIX_FMT_NV12;
 	fmt_dst.fmt.pix.bytesperline = 0;
 	fmt_dst.fmt.pix.sizeimage = (fmt_dst.fmt.pix.width * fmt_dst.fmt.pix.height * 3) / 2;
 
