@@ -4,7 +4,7 @@ STRIP = arm-angstrom-linux-gnueabi-strip
 AR = arm-angstrom-linux-gnueabi-ar
 
 CFLAGS += -Wall -DOS_LINUX -I./cedarv
-LIBS += -pthread ./lib/libcedarv.a ./lib/libh264enc.a ./lib/libcedarv_osal.a ./lib/libcedarxalloc.a
+LIBS += -pthread ./lib/libcedarv.a ./lib/libh264enc.a ./lib/libcedarv_osal.a ./lib/libcedarxalloc.a -lv4lconvert
 
 SRC := $(wildcard *.c)
 OBJ := $(SRC:%.c=%.o)

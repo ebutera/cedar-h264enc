@@ -15,6 +15,7 @@
 
 // #include <asm/types.h>         
 #include <linux/videodev2.h>
+#include <libv4lconvert.h>
 #include <time.h>
 #include <linux/fb.h>
 
@@ -37,6 +38,8 @@ extern void* cdxalloc_allocregs();
 extern void cdxalloc_free(void *address);
 extern unsigned int cdxalloc_vir2phy(void *address);
 extern void cdxalloc_createmapping(void *virt,void *phys,int size);
+
+static struct v4lconvert_data *convert_data;
 
 int disphd;
 unsigned int hlay;
@@ -330,6 +333,12 @@ int InitCapture()
 		printf("DBG: cdx buffer: %p\n", cedarbufs[i]);
 	}
 
+	convert_data = v4lconvert_create(fd);
+	if (!convert_data)  {
+		printf("v4lconvert_create error!\n");
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -368,8 +377,11 @@ void DeInitCapture()
 	for (i=0; i<n_buffers; i++) {
 		cdxalloc_free(cedarbufs[i]);
 	}
-	if (cdxalloc_close()) printf("DBG: cdxalloc_close error!\n");
-	else printf("DBG: cdxalloc closed\n");
+	/* cdxalloc_close make it crash, why? */
+	//if (cdxalloc_close()) printf("DBG: cdxalloc_close error!\n");
+	//else printf("DBG: cdxalloc closed\n");
+
+	if (convert_data) v4lconvert_destroy(convert_data);
 }
 
 int StartStreaming()
@@ -445,9 +457,27 @@ int WaitCamerReady()
 	return 0;
 }
 
-static int convert_inplace(struct v4l2_buffer *srcbuf) {
+static int convert(struct v4l2_buffer *srcbuf) {
 	struct v4l2_format fmt_src, fmt_dst;
 
+	fmt_src.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+	if (ioctl(fd, VIDIOC_G_FMT, &fmt_src) == -1) {
+		printf("convert: VIDIOC_G_FMT error!\n");
+		return -1;
+	}
+	fmt_dst = fmt_src;
+	fmt_dst.fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;	//V4L2_PIX_FMT_YUV420;//V4L2_PIX_FMT_NV12;
+	fmt_dst.fmt.pix.bytesperline = 0;
+	fmt_dst.fmt.pix.sizeimage = (fmt_dst.fmt.pix.width * fmt_dst.fmt.pix.height * 3) / 2;
+
+	if (v4lconvert_convert(convert_data, &fmt_src, &fmt_dst,
+			buffers[srcbuf->index].start, srcbuf->length,
+			cedarbufs[srcbuf->index], srcbuf->length) < 1) {
+		printf("v4lconvert_convert error!\n");
+		return -1;
+	}
+	
 	return 0;
 }
 
@@ -477,7 +507,8 @@ int GetPreviewFrame(V4L2BUF_t *pBuf)	// DQ buffer for preview or encoder
 
 	//memset(buffers[buf.index].start, 0x55, buf.bytesused);
 	//printf("\tSTART: %p, OFF: %p\n", buffers[buf.index].start, buf.m.offset);
-	memcpy(cedarbufs[buf.index], buffers[buf.index].start, buf.bytesused);
+	//memcpy(cedarbufs[buf.index], buffers[buf.index].start, buf.bytesused);
+	convert(&buf);
 	
 	pBuf->addrPhyY	= cdxalloc_vir2phy(cedarbufs[buf.index]);// buf.m.offset;
 	pBuf->index 	= buf.index;
