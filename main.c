@@ -69,7 +69,7 @@ static int CedarvEncInit()
 	enc_fmt.qp_min = 20;
 	enc_fmt.avg_bit_rate = 1024*1024;
 	enc_fmt.maxKeyInterval = 25;
-	enc_fmt.profileIdc = 77; /* main profile, 66: base profile */
+	enc_fmt.profileIdc = 77; /* 100: high profile, 77: main profile, 66: base profile */
 	pCedarV->IoCtrl(pCedarV, VENC_SET_ENC_INFO_CMD, &enc_fmt);
 
 	ret = pCedarV->open(pCedarV);
@@ -93,7 +93,7 @@ int main()
 	int ret = -1;
 	unsigned long long lastTime = 0 ; 
 	FILE * pEncFile = NULL;
-	char saveFile[128] = "/tmp/h264.buf";
+	char saveFile[128] = "/tmp/h264.h264";
 	int bFirstFrame = 1;
 	
 	ret = cedarx_hardware_init();
@@ -133,7 +133,7 @@ int main()
 		unsigned long long curTime = gettimeofday_curr();
 
 		printf("cru: %lld, last: %lld, %lld\n", curTime, lastTime, curTime - lastTime);
-		if ((curTime - lastTime) > 1000*1000*5)	// 30s
+		if ((curTime - lastTime) > 1000*1000*10)	// 10s
 		{
 			ReleaseFrame(g_cur_id);
 			goto EXIT;
