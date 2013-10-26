@@ -6,8 +6,8 @@
 #include <linux/videodev2.h>
 #include "type.h"
 
-#define CAPTURE_WIDTH	640
-#define CAPTURE_HEIGHT	480
+#define CAPTURE_WIDTH	1280
+#define CAPTURE_HEIGHT	720
 
 int disp_int(int w,int h);
 void disp_start(void);
