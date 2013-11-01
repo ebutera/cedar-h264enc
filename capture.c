@@ -325,12 +325,29 @@ int InitCapture()
 	cedarbufs = calloc(n_buffers, sizeof(void *));
 
 	for (i=0; i<n_buffers; i++) {
+		char fname[100];
+		FILE *fp;
+		size_t bytesread = 0;
+
 		cedarbufs[i] = cdxalloc_alloc(buffers[0].length);
 		if (!cedarbufs[i]) {
 			printf("cdxalloc_alloc error!\n");
 			return -1;
 		}
 		printf("DBG: cdx buffer: %p\n", cedarbufs[i]);
+
+		snprintf(fname, 99, "1280x720-0%d.nv12", i);
+		fp = fopen(fname, "r");
+		if (!fp) {
+			printf("Cannot open file %s\n", fname);
+			return -1;
+		}
+		while (!feof(fp)) {
+			bytesread += fread(((unsigned char *)cedarbufs[i])+bytesread, 1382400, 1, fp);
+		}
+		fclose(fp);
+		printf("read %d bytes\n", bytesread);
+		bytesread = 0;
 	}
 
 	convert_data = v4lconvert_create(fd);
@@ -457,6 +474,24 @@ int WaitCamerReady()
 	return 0;
 }
 
+// unused
+static inline void I420toNV12(unsigned char *pNV12, const unsigned char *pI420, int C_Size)
+{
+	int halfC = C_Size/2;
+	const unsigned char *pCb = pI420;
+	const unsigned char *pCr = pI420 + halfC;
+	int j;
+	for(j=0; j<halfC; j++){
+		*pNV12 = *pCb;
+		pNV12++;
+		*pNV12 = *pCr;
+		pNV12++;
+
+		pCr++;
+		pCb++;
+	}
+}
+
 static int convert(struct v4l2_buffer *srcbuf) {
 	struct v4l2_format fmt_src, fmt_dst;
 
@@ -466,8 +501,9 @@ static int convert(struct v4l2_buffer *srcbuf) {
 		printf("convert: VIDIOC_G_FMT error!\n");
 		return -1;
 	}
+
 	fmt_dst = fmt_src;
-	fmt_dst.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;	//V4L2_PIX_FMT_NV12;
+	fmt_dst.fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;	//V4L2_PIX_FMT_YUV420;
 	fmt_dst.fmt.pix.bytesperline = 0;
 	fmt_dst.fmt.pix.sizeimage = (fmt_dst.fmt.pix.width * fmt_dst.fmt.pix.height * 3) / 2;
 
@@ -477,7 +513,7 @@ static int convert(struct v4l2_buffer *srcbuf) {
 		printf("v4lconvert_convert error!\n");
 		return -1;
 	}
-	
+
 	return 0;
 }
 
@@ -508,7 +544,7 @@ int GetPreviewFrame(V4L2BUF_t *pBuf)	// DQ buffer for preview or encoder
 	//memset(buffers[buf.index].start, 0x55, buf.bytesused);
 	//printf("\tSTART: %p, OFF: %p\n", buffers[buf.index].start, buf.m.offset);
 	//memcpy(cedarbufs[buf.index], buffers[buf.index].start, buf.bytesused);
-	convert(&buf);
+	//convert(&buf);
 	
 	pBuf->addrPhyY	= cdxalloc_vir2phy(cedarbufs[buf.index]);// buf.m.offset;
 	pBuf->index 	= buf.index;
