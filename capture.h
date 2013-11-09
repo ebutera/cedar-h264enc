@@ -6,19 +6,13 @@
 #include <linux/videodev2.h>
 #include "type.h"
 
-#define CAPTURE_WIDTH	1280
-#define CAPTURE_HEIGHT	720
-
-int disp_int(int w,int h);
-void disp_start(void);
-void disp_stop(void);
-int disp_set_addr(int w,int h,int *addr);
-void disp_quit();
+#define CAPTURE_BUFFERS		3
+#define CAPTURE_WIDTH		160
+#define CAPTURE_HEIGHT		120
+#define CAPTURE_BUFFER_SIZE	((CAPTURE_WIDTH * CAPTURE_HEIGHT * 3) / 2)
 
 int InitCapture();
 void DeInitCapture();
-int StartStreaming();
-void ReleaseFrame(int buf_id);
 int WaitCamerReady();
 int GetPreviewFrame(V4L2BUF_t *pBuf);
 

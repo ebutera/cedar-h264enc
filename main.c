@@ -7,6 +7,8 @@
 #include "H264encLibApi.h"
 #include "capture.h"
 
+#define ENCODE_FRAMES		10	///< number of frames to encode
+
 VENC_DEVICE *g_pCedarV = NULL;
 int g_cur_id = -1;
 
@@ -91,10 +93,10 @@ static int CedarvEncInit()
 int main()
 {
 	int ret = -1;
-	unsigned long long lastTime = 0 ; 
 	FILE * pEncFile = NULL;
 	char saveFile[128] = "/tmp/h264.h264";
 	int bFirstFrame = 1;
+	int encode_frames = ENCODE_FRAMES;
 	
 	ret = cedarx_hardware_init();
 	if (ret < 0)
@@ -123,21 +125,9 @@ int main()
 		return -1;
 	}
 
-	printf("to stream on\n");
-	StartStreaming();
-
-	lastTime = gettimeofday_curr();
-	while(1)
+	while(encode_frames--)
 	{
 		__vbv_data_ctrl_info_t data_info;
-		unsigned long long curTime = gettimeofday_curr();
-
-		printf("cru: %lld, last: %lld, %lld\n", curTime, lastTime, curTime - lastTime);
-		if ((curTime - lastTime) > 1000*1000*10)	// 10s
-		{
-			ReleaseFrame(g_cur_id);
-			goto EXIT;
-		}
 
 		ret = g_pCedarV->encode(g_pCedarV);
 		if (ret != 0)
@@ -146,8 +136,6 @@ int main()
 			printf("not encode, ret: %d\n", ret);
 		}
 
-		ReleaseFrame(g_cur_id);
-		
 		memset(&data_info, 0 , sizeof(__vbv_data_ctrl_info_t));
 		ret = g_pCedarV->GetBitStreamInfo(g_pCedarV, &data_info);
 		if(ret == 0)
@@ -171,6 +159,7 @@ int main()
 		}
 
 		g_pCedarV->ReleaseBitStreamInfo(g_pCedarV, data_info.idx);
+		printf("Encoded one frame\n");
 	}
 	
 EXIT:
@@ -193,5 +182,4 @@ EXIT:
 	
 	return 0;
 }
-
 
