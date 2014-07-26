@@ -12,6 +12,6 @@ Known bugs: output is not perfect, probably a colorspace conversion problem
 Notes: soft-float libraries (armel). Edit Makefile to match your toolchain.
 Tested with kernel from [1], commit 6db4ad895c8f4b4f17dec1bf98778906945215ce.
 
-Author: Enrico Butera <ebutera@users.berlios.de>
+Author: Enrico Butera <ebutera@users.sourceforge.net>
 
 [1]: https://github.com/jwrdegoede/linux-sunxi/tree/sunxi-3.4
